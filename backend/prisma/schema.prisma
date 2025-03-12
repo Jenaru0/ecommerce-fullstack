@@ -1,0 +1,107 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("cliente")
+  orders    Order[]
+  reviews   Review[] // Añade esta relación
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  name             String
+  description      String
+  fullDescription  String?  @db.Text
+  price            Decimal  @db.Decimal(10, 2)
+  originalPrice    Decimal? @db.Decimal(10, 2)
+  imageUrl         String
+  additionalImages String[]
+  stock            Int      @default(0)
+  category         String?
+  rating           Float    @default(0)
+  reviewsCount     Int      @default(0)
+  features         String[]
+  specifications   Json?
+  faqs             Json?
+  variants         Json?
+  isNewArrival     Boolean  @default(false) // Añadir este campo
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relaciones
+  reviews    Review[]
+  orderItems OrderItem[]
+  categories CategoryOnProduct[]
+
+  @@map("products")
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  total     Float
+  createdAt DateTime    @default(now())
+  status    String      @default("Pendiente")
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+// Definición del modelo Category
+model Category {
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique
+  description String?
+  products    CategoryOnProduct[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+// Tabla de unión para relación muchos a muchos entre Product y Category
+model CategoryOnProduct {
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@index([productId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String   @db.Text
+  userId    Int // Cambiado a Int para coincidir con User.id
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("reviews")
+}
