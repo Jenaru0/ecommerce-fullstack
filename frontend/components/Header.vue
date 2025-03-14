@@ -1,94 +1,172 @@
 <!-- frontend/components/Header.vue -->
 <template>
-  <header class="py-5 px-6 md:px-16 lg:px-24 border-b border-gray-100">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-10">
-        <div class="logo">
-          <NuxtLink to="/" class="text-2xl font-black tracking-tighter"
-            >SHOP.CO</NuxtLink
-          >
-        </div>
-        <nav class="hidden md:flex items-center space-x-6">
-          <div class="relative group">
-            <NuxtLink to="/products" class="font-medium flex items-center">
-              Tienda
-              <ChevronDownIcon class="w-4 h-4 ml-1" />
-            </NuxtLink>
-            <!-- Menú desplegable -->
-            <div
-              class="absolute hidden group-hover:block bg-white shadow-lg rounded-md p-4 w-48 z-10"
-            >
-              <NuxtLink
-                to="/products/men"
-                class="block py-2 hover:text-indigo-600"
-                >Hombres</NuxtLink
-              >
-              <NuxtLink
-                to="/products/women"
-                class="block py-2 hover:text-indigo-600"
-                >Mujeres</NuxtLink
-              >
-              <NuxtLink
-                to="/products/accessories"
-                class="block py-2 hover:text-indigo-600"
-                >Accesorios</NuxtLink
-              >
-            </div>
-          </div>
-          <NuxtLink to="/sale" class="font-medium">En Oferta</NuxtLink>
-          <NuxtLink to="/new" class="font-medium">Novedades</NuxtLink>
-          <NuxtLink to="/brands" class="font-medium">Marcas</NuxtLink>
-        </nav>
-      </div>
+  <header class="bg-white border-b border-gray-200">
+    <div class="container mx-auto px-6 md:px-16 lg:px-24 py-4">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <NuxtLink to="/" class="text-2xl font-black">SHOP.CO</NuxtLink>
 
-      <div class="flex items-center gap-4">
-        <div class="relative flex-grow max-w-md">
-          <div
-            class="absolute inset-y-0 left-3 flex items-center pointer-events-none"
+        <!-- Navegación -->
+        <nav class="hidden md:flex space-x-8">
+          <NuxtLink to="/products" class="text-gray-600 hover:text-black"
+            >Tienda</NuxtLink
           >
-            <SearchIcon class="h-5 w-5 text-gray-400" />
+          <NuxtLink
+            to="/products/category/men"
+            class="text-gray-600 hover:text-black"
+            >Hombre</NuxtLink
+          >
+          <NuxtLink
+            to="/products/category/women"
+            class="text-gray-600 hover:text-black"
+            >Mujer</NuxtLink
+          >
+          <NuxtLink
+            to="/products/category/new"
+            class="text-gray-600 hover:text-black"
+            >Novedades</NuxtLink
+          >
+        </nav>
+
+        <!-- Búsqueda y acciones -->
+        <div class="flex items-center gap-2">
+          <div class="relative hidden md:block">
+            <input
+              type="text"
+              placeholder="Buscar productos..."
+              class="bg-gray-100 rounded-full py-2 px-4 pr-10 w-64 focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            <button
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+            >
+              <SearchIcon class="h-5 w-5" />
+            </button>
           </div>
-          <input
-            type="text"
-            placeholder="Buscar productos..."
-            class="w-full bg-gray-100 rounded-full py-2 pl-10 pr-4 focus:outline-none"
-          />
+
+          <!-- Botones de acción - Corrección para hidratación -->
+          <div class="flex items-center space-x-1">
+            <!-- Solución: usar un renderizado condicional correctamente -->
+            <ClientOnly>
+              <div v-if="isAuthenticated" class="relative">
+                <button
+                  @click="showUserMenu = !showUserMenu"
+                  class="p-2 rounded-full hover:bg-gray-100 flex items-center"
+                  aria-label="Perfil de usuario"
+                >
+                  <span
+                    class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600"
+                  >
+                    {{ userInitials }}
+                  </span>
+                  <ChevronDownIcon class="h-4 w-4 ml-1" />
+                </button>
+                <div
+                  v-if="showUserMenu"
+                  class="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg z-50"
+                >
+                  <NuxtLink
+                    to="/account"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Mi Cuenta
+                  </NuxtLink>
+                  <NuxtLink
+                    to="/account/orders"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Mis Pedidos
+                  </NuxtLink>
+                  <div v-if="user && user.role === 'admin'">
+                    <NuxtLink
+                      to="/admin"
+                      class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Panel Admin
+                    </NuxtLink>
+                  </div>
+                  <button
+                    @click="
+                      authStore.logout();
+                      router.push('/');
+                    "
+                    class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+              <div v-else>
+                <NuxtLink
+                  to="/auth/login"
+                  class="p-2"
+                  aria-label="Iniciar sesión"
+                >
+                  <UserIcon class="h-6 w-6" />
+                </NuxtLink>
+              </div>
+
+              <!-- Fallback para server-side -->
+              <template #fallback>
+                <div>
+                  <NuxtLink
+                    to="/auth/login"
+                    class="p-2"
+                    aria-label="Iniciar sesión"
+                  >
+                    <UserIcon class="h-6 w-6" />
+                  </NuxtLink>
+                </div>
+              </template>
+            </ClientOnly>
+
+            <NuxtLink to="/cart" class="p-2 relative" aria-label="Carrito">
+              <ShoppingCartIcon class="h-6 w-6" />
+              <span
+                v-if="cartCount > 0"
+                class="absolute top-0 right-0 rounded-full bg-black text-white text-xs w-5 h-5 flex items-center justify-center"
+              >
+                {{ cartCount }}
+              </span>
+            </NuxtLink>
+          </div>
         </div>
-        <NuxtLink to="/cart" class="relative p-2" aria-label="Carrito">
-          <ShoppingCartIcon class="w-6 h-6" />
-          <span
-            v-if="cartCount > 0"
-            class="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-          >
-            {{ cartCount }}
-          </span>
-        </NuxtLink>
-        <NuxtLink
-          :to="isAuthenticated ? '/account' : '/auth/login'"
-          class="p-2"
-          aria-label="Cuenta"
-        >
-          <UserIcon class="w-6 h-6" />
-        </NuxtLink>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { storeToRefs } from "pinia";
-import { useAuthStore } from "~/stores/auth";
+import { ref, computed } from "vue";
 import { useCartStore } from "~/stores/cart";
+import { useAuthStore } from "~/stores/auth";
+import { storeToRefs } from "pinia";
+import { useRouter } from "vue-router";
 import {
-  ChevronDown as ChevronDownIcon,
   Search as SearchIcon,
-  ShoppingCart as ShoppingCartIcon,
   User as UserIcon,
+  ShoppingCart as ShoppingCartIcon,
+  ChevronDown as ChevronDownIcon,
 } from "lucide-vue-next";
 
+// Obtener el estado de autenticación desde el store
 const authStore = useAuthStore();
-const cartStore = useCartStore();
+const { user, isAuthenticated } = storeToRefs(authStore);
+const router = useRouter();
 
-const { isAuthenticated } = storeToRefs(authStore);
-const { cartCount } = storeToRefs(cartStore);
+// Obtener la cantidad de items en el carrito
+const cartStore = useCartStore();
+const cartCount = computed(() => cartStore.itemCount);
+
+// Estado para menú desplegable de usuario
+const showUserMenu = ref(false);
+
+// Propiedades calculadas para el usuario
+const userInitials = computed(() => {
+  if (!user.value || !user.value.name) return "U";
+  const names = user.value.name.split(" ");
+  if (names.length > 1) {
+    return `${names[0][0]}${names[1][0]}`.toUpperCase();
+  }
+  return names[0][0].toUpperCase();
+});
 </script>

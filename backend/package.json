@@ -26,6 +26,7 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "lodash.debounce": "^4.0.8",
     "morgan": "^1.10.0",
     "pinia": "^3.0.1",
     "prisma": "^6.4.1",

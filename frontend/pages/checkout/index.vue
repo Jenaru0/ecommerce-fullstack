@@ -172,9 +172,13 @@
                   </label>
                 </div>
                 <div class="flex space-x-2">
-                  <img src="/images/visa.svg" alt="Visa" class="h-8" />
                   <img
-                    src="/images/mastercard.svg"
+                    src="assets/images/payment/visa.svg"
+                    alt="Visa"
+                    class="h-8"
+                  />
+                  <img
+                    src="assets/images/payment/mastercard.svg"
                     alt="Mastercard"
                     class="h-8"
                   />
@@ -320,12 +324,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore } from "~/stores/cart";
 import { useToast } from "~/composables/useToast";
 import { useApi } from "~/composables/useApi";
+import { useAuth } from "~/composables/useAuth";
 import BreadCrumb from "~/components/ui/BreadCrumb.vue";
+import { AlertCircleIcon } from "lucide-vue-next";
+import { usePaymentFormat } from "~/composables/usePaymentFormat";
 
 // Definir middleware para proteger esta ruta
 definePageMeta({
@@ -336,8 +343,11 @@ const router = useRouter();
 const cartStore = useCartStore();
 const { showToast } = useToast();
 const api = useApi();
+const { isAuthenticated, user, checkAuthStatus } = useAuth();
+const { formatCardNumber, formatExpiryDate } = usePaymentFormat();
 
 const isSubmitting = ref(false);
+// IMPORTANTE: Declarar formData ANTES de usar los watchers
 const formData = ref({
   firstName: "",
   lastName: "",
@@ -353,13 +363,72 @@ const formData = ref({
   cvv: "",
 });
 
+// AHORA podemos añadir los watchers después de declarar formData
+watch(
+  () => formData.value.cardNumber,
+  (newValue) => {
+    if (newValue) {
+      formData.value.cardNumber = formatCardNumber(newValue);
+    }
+  }
+);
+
+watch(
+  () => formData.value.expiryDate,
+  (newValue) => {
+    if (newValue) {
+      formData.value.expiryDate = formatExpiryDate(newValue);
+    }
+  }
+);
+
 const cartItems = computed(() => cartStore.items);
-const subtotal = computed(() => cartStore.subtotal);
+const subtotal = computed(() => {
+  // Asegurar que se realiza una conversión numérica correcta
+  if (!cartItems.value || cartItems.value.length === 0) return 0;
+
+  return cartItems.value.reduce((total, item) => {
+    const itemPrice = Number(item.price) || 0;
+    const quantity = Number(item.quantity) || 0;
+    return total + itemPrice * quantity;
+  }, 0);
+});
+
 const shipping = computed(() => {
   // Gratis para pedidos mayores a $50
-  return subtotal.value > 50 ? 0 : 5;
+  const subtotalValue = subtotal.value || 0;
+  return subtotalValue > 50 ? 0 : 5;
 });
-const total = computed(() => subtotal.value + shipping.value);
+
+const total = computed(() => {
+  const subtotalValue = subtotal.value || 0;
+  const shippingValue = shipping.value || 0;
+  return subtotalValue + shippingValue;
+});
+
+// ¡IMPORTANTE! Verificar estado de autenticación al montar el componente
+onMounted(async () => {
+  try {
+    // Forzar una verificación del estado de autenticación
+    const isLoggedIn = await checkAuthStatus();
+
+    // Si no está autenticado, redirigir a login
+    if (!isLoggedIn) {
+      router.push("/auth/login?redirect=/checkout");
+      return;
+    }
+
+    // Si hay un usuario autenticado, prellenar datos del formulario
+    if (user.value) {
+      const names = user.value.name?.split(" ") || [];
+      formData.value.firstName = names[0] || "";
+      formData.value.lastName = names.slice(1).join(" ") || "";
+      formData.value.email = user.value.email || "";
+    }
+  } catch (error) {
+    console.error("Error verificando autenticación:", error);
+  }
+});
 
 const formatVariants = (variants) => {
   if (!variants) return "";
@@ -382,6 +451,23 @@ const placeOrder = async () => {
     return;
   }
 
+  // Validar que los valores numéricos son correctos
+  if (isNaN(subtotal.value) || isNaN(total.value) || total.value <= 0) {
+    showToast(
+      "Error en el cálculo del total. Por favor, actualice la página",
+      "error"
+    );
+    isSubmitting.value = false;
+    return;
+  }
+
+  // Validar que el método de pago está definido
+  if (!formData.value.paymentMethod) {
+    showToast("Por favor seleccione un método de pago", "error");
+    isSubmitting.value = false;
+    return;
+  }
+
   isSubmitting.value = true;
 
   try {
@@ -400,7 +486,9 @@ const placeOrder = async () => {
         province: formData.value.province,
         phone: formData.value.phone,
       },
-      paymentMethod: formData.value.paymentMethod,
+      // Asegurar que enviamos el valor correcto
+      paymentMethod:
+        formData.value.paymentMethod === "card" ? "card" : "paypal",
       subtotal: subtotal.value,
       shipping: shipping.value,
       total: total.value,
@@ -428,20 +516,21 @@ const placeOrder = async () => {
 // Función para validar el formulario
 const validateForm = () => {
   let isValid = true;
+  const errors = [];
   const requiredFields = [
-    "firstName",
-    "lastName",
-    "email",
-    "address",
-    "postalCode",
-    "city",
-    "province",
+    { field: "firstName", label: "Nombre" },
+    { field: "lastName", label: "Apellido" },
+    { field: "email", label: "Email" },
+    { field: "address", label: "Dirección" },
+    { field: "postalCode", label: "Código Postal" },
+    { field: "city", label: "Ciudad" },
+    { field: "province", label: "Provincia" },
   ];
 
-  for (const field of requiredFields) {
-    if (!formData.value[field]) {
+  for (const { field, label } of requiredFields) {
+    if (!formData.value[field]?.trim()) {
       isValid = false;
-      break;
+      errors.push(`El campo ${label} es obligatorio`);
     }
   }
 
@@ -451,17 +540,33 @@ const validateForm = () => {
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.value.email)
   ) {
     isValid = false;
+    errors.push("El formato del email no es válido");
   }
 
   // Validar campos de tarjeta si se seleccionó ese método
   if (formData.value.paymentMethod === "card") {
-    if (
-      !formData.value.cardNumber ||
-      !formData.value.expiryDate ||
-      !formData.value.cvv
-    ) {
+    if (!formData.value.cardNumber?.trim()) {
       isValid = false;
+      errors.push("El número de tarjeta es obligatorio");
+    } else if (formData.value.cardNumber.replace(/\s/g, "").length < 16) {
+      isValid = false;
+      errors.push("El número de tarjeta debe tener al menos 16 dígitos");
     }
+
+    if (!formData.value.expiryDate?.trim()) {
+      isValid = false;
+      errors.push("La fecha de expiración es obligatoria");
+    }
+
+    if (!formData.value.cvv?.trim()) {
+      isValid = false;
+      errors.push("El código CVV es obligatorio");
+    }
+  }
+
+  // Mostrar el primer error si hay alguno
+  if (errors.length > 0) {
+    showToast(errors[0], "error");
   }
 
   return isValid;

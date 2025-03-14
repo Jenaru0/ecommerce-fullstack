@@ -13,25 +13,30 @@
     <h3 class="font-medium mb-1 truncate">{{ product.name }}</h3>
 
     <div class="flex items-center mb-1">
-      <RatingStars :rating="product.rating" />
+      <RatingStars :rating="productRating" />
       <span class="text-xs text-gray-500 ml-1"
-        >{{ product.rating.toFixed(1) }}/5</span
+        >{{ productRating.toFixed(1) }}/5</span
       >
     </div>
 
     <div class="flex items-center justify-between mt-2">
       <div class="flex items-center">
-        <span class="font-semibold mr-2">${{ product.price.toFixed(2) }}</span>
+        <span class="font-semibold mr-2"
+          >${{ formatPrice(product.price) }}</span
+        >
         <span
-          v-if="product.originalPrice && product.originalPrice > product.price"
+          v-if="
+            product.originalPrice &&
+            Number(product.originalPrice) > Number(product.price)
+          "
           class="text-gray-500 line-through text-sm"
         >
-          ${{ product.originalPrice.toFixed(2) }}
+          ${{ formatPrice(product.originalPrice) }}
         </span>
         <span
-          v-if="product.discountPercentage"
+          v-if="discountPercentage"
           class="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded"
-          >-{{ product.discountPercentage }}%</span
+          >-{{ discountPercentage }}%</span
         >
       </div>
 
@@ -47,6 +52,7 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { ShoppingBag } from "lucide-vue-next";
 import { useCartStore } from "~/stores/cart";
 
@@ -59,13 +65,38 @@ const props = defineProps({
 
 const cartStore = useCartStore();
 
+// Calcular valores derivados de forma segura
+const productRating = computed(() => {
+  return props.product.rating || 0;
+});
+
+const discountPercentage = computed(() => {
+  if (
+    !props.product.originalPrice ||
+    Number(props.product.originalPrice) <= Number(props.product.price)
+  ) {
+    return null;
+  }
+  return Math.round(
+    ((Number(props.product.originalPrice) - Number(props.product.price)) /
+      Number(props.product.originalPrice)) *
+      100
+  );
+});
+
+// Función para formatear precios
+const formatPrice = (price) => {
+  return Number(price).toFixed(2);
+};
+
 const addToCart = () => {
   cartStore.addItem({
     id: props.product.id,
     name: props.product.name,
-    price: props.product.price,
+    price: Number(props.product.price),
     imageUrl: props.product.imageUrl,
     quantity: 1,
+    stock: props.product.stock || 10, // Default a 10 si no está definido
   });
 };
 </script>

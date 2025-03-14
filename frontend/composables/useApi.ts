@@ -1,118 +1,273 @@
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 export function useApi() {
+  // Configuración base de la API
   const baseUrl = "http://localhost:5000/api";
+  const isLoading = ref(false);
+  const error = ref(null);
 
-  const get = async (endpoint: string) => {
+  // Función para obtener el token de autenticación
+  const getAuthToken = () => {
+    if (process.client) {
+      return localStorage.getItem("token");
+    }
+    return null;
+  };
+
+  // Función de reintento con retroceso exponencial
+  const fetchWithRetry = async (
+    url: string,
+    options: RequestInit,
+    maxRetries = 3
+  ) => {
+    let retries = 0;
+
+    while (retries < maxRetries) {
+      try {
+        return await fetch(url, options);
+      } catch (err) {
+        retries++;
+        if (retries >= maxRetries) {
+          throw err;
+        }
+
+        // Esperar tiempo creciente entre reintentos (0.5s, 1s, 2s, ...)
+        const delayMs = 500 * Math.pow(2, retries - 1);
+        console.log(
+          `Reintentando conexión en ${delayMs}ms (intento ${retries} de ${maxRetries})...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    throw new Error("Número máximo de reintentos alcanzado");
+  };
+
+  // Petición GET con mejor manejo de errores
+  const get = async (endpoint: string, query = {}) => {
+    isLoading.value = true;
+    error.value = null;
+
     try {
-      console.log(`Fetching: ${baseUrl}${endpoint}`);
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      // Crear headers básicos
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Añadir token de autenticación si existe
+      const token = getAuthToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // Construir URL con parámetros de consulta
+      const queryString = new URLSearchParams(
+        query as Record<string, string>
+      ).toString();
+      const url = `${baseUrl}${endpoint}${
+        queryString ? `?${queryString}` : ""
+      }`;
+
+      const response = await fetchWithRetry(url, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          // Incluir token si está disponible
-          ...(localStorage.getItem("authToken")
-            ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
-            : {}),
-        },
+        headers,
+        // Añadir opciones para mejorar la estabilidad de la conexión
+        credentials: "include",
+        mode: "cors",
+        // Agregar timeout para evitar esperas indefinidas
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
 
-      // Verificar errores HTTP
+      // Si la respuesta no es ok, lanzar error
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        return {
-          success: false,
-          message:
-            errorData.message ||
-            `Error ${response.status}: ${response.statusText}`,
-          status: response.status,
-        };
+        throw new Error(errorData.message || `Error HTTP: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Response:", data);
-      return data;
-    } catch (error) {
-      console.error(`Error en petición GET a ${endpoint}:`, error);
+      return await response.json();
+    } catch (err: any) {
+      // Manejo mejorado de errores
+      console.error(`Error en petición GET a ${endpoint}:`, err);
+      error.value = err.message || "Error de conexión";
+
+      // Formatear respuesta de error
       return {
         success: false,
-        message: "Error en la conexión con el servidor",
+        message: err.message || "Error de conexión con el servidor",
+        error: err,
       };
+    } finally {
+      isLoading.value = false;
     }
   };
 
-  const post = async (endpoint: string, data: any) => {
+  // Petición POST con mejor manejo de errores
+  const post = async (endpoint: string, body = {}) => {
+    isLoading.value = true;
+    error.value = null;
+
     try {
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      // Crear headers básicos
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Añadir token de autenticación si existe
+      const token = getAuthToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetchWithRetry(`${baseUrl}${endpoint}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(localStorage.getItem("authToken")
-            ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
-            : {}),
-        },
-        body: JSON.stringify(data),
+        headers,
+        body: JSON.stringify(body),
+        credentials: "include",
+        mode: "cors",
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
 
-      // Verificar errores HTTP
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return {
-          success: false,
-          message:
-            errorData.message ||
-            `Error ${response.status}: ${response.statusText}`,
-          status: response.status,
-        };
+      // Intentar obtener la respuesta JSON
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        data = { success: false };
       }
 
-      const responseData = await response.json();
-      return responseData;
-    } catch (error) {
-      console.error(`Error en petición POST a ${endpoint}:`, error);
+      // Si la respuesta no es ok, manejar el error
+      if (!response.ok) {
+        throw new Error(data.message || `Error HTTP: ${response.status}`);
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error(`Error en petición POST a ${endpoint}:`, err);
+      error.value = err.message || "Error de conexión";
+
       return {
         success: false,
-        message: "Error en la conexión con el servidor",
+        message: err.message || "Error de conexión con el servidor",
+        error: err,
       };
+    } finally {
+      isLoading.value = false;
     }
   };
 
-  const put = async (endpoint: string, data: any) => {
+  // Petición PUT con mejor manejo de errores
+  const put = async (endpoint: string, body = {}) => {
+    isLoading.value = true;
+    error.value = null;
+
     try {
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      // Crear headers básicos
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Añadir token de autenticación si existe
+      const token = getAuthToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetchWithRetry(`${baseUrl}${endpoint}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(localStorage.getItem("authToken")
-            ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
-            : {}),
-        },
-        body: JSON.stringify(data),
+        headers,
+        body: JSON.stringify(body),
+        credentials: "include",
+        mode: "cors",
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
-      return await response.json();
-    } catch (error) {
-      console.error(`Error en PUT ${endpoint}:`, error);
-      return { success: false, message: "Error de conexión" };
+
+      // Intentar obtener la respuesta JSON
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        data = { success: false };
+      }
+
+      // Si la respuesta no es ok, manejar el error
+      if (!response.ok) {
+        throw new Error(data.message || `Error HTTP: ${response.status}`);
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error(`Error en petición PUT a ${endpoint}:`, err);
+      error.value = err.message || "Error de conexión";
+
+      return {
+        success: false,
+        message: err.message || "Error de conexión con el servidor",
+        error: err,
+      };
+    } finally {
+      isLoading.value = false;
     }
   };
 
+  // Petición DELETE con mejor manejo de errores
   const del = async (endpoint: string) => {
+    isLoading.value = true;
+    error.value = null;
+
     try {
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      // Crear headers básicos
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Añadir token de autenticación si existe
+      const token = getAuthToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetchWithRetry(`${baseUrl}${endpoint}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          ...(localStorage.getItem("authToken")
-            ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
-            : {}),
-        },
+        headers,
+        credentials: "include",
+        mode: "cors",
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
-      return await response.json();
-    } catch (error) {
-      console.error(`Error en DELETE ${endpoint}:`, error);
-      return { success: false, message: "Error de conexión" };
+
+      // Intentar obtener la respuesta JSON
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        data = { success: response.ok };
+      }
+
+      // Si la respuesta no es ok, manejar el error
+      if (!response.ok) {
+        throw new Error(data.message || `Error HTTP: ${response.status}`);
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error(`Error en petición DELETE a ${endpoint}:`, err);
+      error.value = err.message || "Error de conexión";
+
+      return {
+        success: false,
+        message: err.message || "Error de conexión con el servidor",
+        error: err,
+      };
+    } finally {
+      isLoading.value = false;
     }
   };
 
-  return { get, post, put, del };
+  return {
+    get,
+    post,
+    put,
+    delete: del,
+    isLoading: computed(() => isLoading.value),
+    error: computed(() => error.value),
+  };
 }

@@ -1,5 +1,3 @@
-// filepath:
-c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\order\confirmation\[id].vue
 <template>
   <div class="container mx-auto px-6 md:px-16 lg:px-24 py-12">
     <div v-if="loading" class="flex justify-center py-20">
@@ -63,6 +61,12 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\order\conf
             <div class="flex justify-between mb-2">
               <span class="text-gray-600">Envío</span>
               <span>$5.00</span>
+            </div>
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-600">Método de pago:</span>
+              <span>{{
+                order.paymentMethod === "card" ? "Tarjeta de crédito" : "PayPal"
+              }}</span>
             </div>
             <div class="flex justify-between pt-2 border-t font-bold">
               <span>Total</span>

@@ -1,5 +1,3 @@
-// filepath:
-c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\orders\index.vue
 <template>
   <div class="container mx-auto px-6 md:px-16 lg:px-24 py-12">
     <h1 class="text-2xl font-bold mb-8">Gestión de Pedidos</h1>
@@ -292,6 +290,7 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\orde
 import { ref, computed, onMounted, watch } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useToast } from "~/composables/useToast";
+import { useDebounce } from "~/composables/useDebounce";
 import {
   Search as SearchIcon,
   Edit as EditIcon,
@@ -300,11 +299,13 @@ import {
   ArrowLeft as ArrowLeftIcon,
   ArrowRight as ArrowRightIcon,
 } from "lucide-vue-next";
-import debounce from "lodash.debounce";
 
-// Definir middleware para proteger esta ruta
+const { debounce } = useDebounce();
+
+// Definir middleware y layout para proteger esta ruta
 definePageMeta({
   middleware: ["admin"],
+  layout: "admin",
 });
 
 // Composables

@@ -1,5 +1,6 @@
 // frontend/stores/cart.ts
 import { defineStore } from "pinia";
+import { computed } from "vue";
 
 interface CartItem {
   id: number;
@@ -7,6 +8,12 @@ interface CartItem {
   price: number;
   imageUrl: string;
   quantity: number;
+}
+
+function ensureNumber(value: any): number {
+  if (typeof value === "number" && !isNaN(value)) return value;
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
 }
 
 export const useCartStore = defineStore("cart", {
@@ -46,4 +53,10 @@ export const useCartStore = defineStore("cart", {
       this.items = [];
     },
   },
+});
+
+const subtotal = computed(() => {
+  return useCartStore().items.reduce((total, item) => {
+    return total + ensureNumber(item.price) * ensureNumber(item.quantity);
+  }, 0);
 });

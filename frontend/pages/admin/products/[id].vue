@@ -1,5 +1,3 @@
-// filepath:
-c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\products\[id].vue
 <template>
   <div class="container mx-auto px-6 md:px-16 lg:px-24 py-12">
     <div class="flex items-center justify-between mb-8">
@@ -27,87 +25,160 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
       <div
         class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black mx-auto"
       ></div>
-      <p class="mt-4 text-gray-600">Cargando...</p>
+      <p class="mt-4 text-gray-600">Cargando información...</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Formulario principal -->
-      <div class="lg:col-span-2 space-y-8">
-        <!-- Información básica -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-bold mb-6">Información Básica</h2>
+    <div v-else class="bg-white shadow rounded-lg p-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Columna izquierda: Imagen y categoría -->
+        <div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Imagen del producto*
+            </label>
+            <div
+              class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md"
+            >
+              <div v-if="product.imageUrl" class="mb-4 text-center">
+                <img
+                  :src="product.imageUrl"
+                  alt="Vista previa"
+                  class="max-h-60 mx-auto"
+                />
+                <button
+                  @click="removeImage"
+                  class="mt-2 text-sm text-red-600 hover:text-red-900"
+                >
+                  <TrashIcon class="h-4 w-4 inline" /> Eliminar imagen
+                </button>
+              </div>
+              <div v-else class="space-y-1 text-center">
+                <div class="flex text-sm text-gray-600">
+                  <label
+                    for="file-upload"
+                    class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none"
+                  >
+                    <div class="flex flex-col items-center">
+                      <UploadCloudIcon class="h-10 w-10 mb-2 text-gray-400" />
+                      <span>Subir imagen</span>
+                      <input
+                        id="file-upload"
+                        ref="fileInput"
+                        type="file"
+                        @change="handleImageUpload"
+                        class="sr-only"
+                        accept="image/*"
+                      />
+                    </div>
+                  </label>
+                </div>
+                <p class="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+              </div>
+            </div>
+            <p v-if="errors.imageUrl" class="mt-1 text-sm text-red-600">
+              {{ errors.imageUrl }}
+            </p>
+          </div>
 
-          <div class="space-y-4">
-            <!-- Nombre del producto -->
-            <div>
-              <label
-                for="name"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Nombre*</label
+          <div class="mt-6">
+            <label
+              for="category"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Categoría*</label
+            >
+            <select
+              id="category"
+              v-model="product.categoryId"
+              class="w-full border-gray-300 rounded-md shadow-sm"
+              :class="{
+                'border-red-300 focus:ring-red-500': errors.categoryId,
+              }"
+            >
+              <option value="">Seleccionar categoría</option>
+              <option
+                v-for="category in categories"
+                :key="category.id"
+                :value="category.id"
               >
+                {{ category.name }}
+              </option>
+            </select>
+            <p v-if="errors.categoryId" class="mt-1 text-sm text-red-600">
+              {{ errors.categoryId }}
+            </p>
+            <!-- Texto informativo sobre la importancia de la categoría -->
+            <p class="mt-1 text-xs text-gray-500">
+              La categoría ayuda a organizar y encontrar productos más
+              fácilmente
+            </p>
+          </div>
+
+          <div class="mt-6">
+            <div class="flex items-center h-5">
               <input
-                id="name"
-                v-model="product.name"
-                type="text"
-                class="w-full border-gray-300 rounded-md shadow-sm"
-                :class="{ 'border-red-300 focus:ring-red-500': errors.name }"
+                id="isNewArrival"
+                v-model="product.isNewArrival"
+                type="checkbox"
+                class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
               />
-              <p v-if="errors.name" class="mt-1 text-sm text-red-600">
-                {{ errors.name }}
-              </p>
-            </div>
-
-            <!-- Descripción corta -->
-            <div>
-              <label
-                for="description"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Descripción corta*</label
-              >
-              <textarea
-                id="description"
-                v-model="product.description"
-                rows="3"
-                class="w-full border-gray-300 rounded-md shadow-sm"
-                :class="{
-                  'border-red-300 focus:ring-red-500': errors.description,
-                }"
-              ></textarea>
-              <p v-if="errors.description" class="mt-1 text-sm text-red-600">
-                {{ errors.description }}
-              </p>
-            </div>
-
-            <!-- Descripción completa -->
-            <div>
-              <label
-                for="fullDescription"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Descripción completa</label
-              >
-              <textarea
-                id="fullDescription"
-                v-model="product.fullDescription"
-                rows="6"
-                class="w-full border-gray-300 rounded-md shadow-sm"
-              ></textarea>
+              <label for="isNewArrival" class="ml-2 text-sm text-gray-700">
+                Marcar como novedad
+              </label>
             </div>
           </div>
         </div>
 
-        <!-- Precios e inventario -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-bold mb-6">Precios e Inventario</h2>
+        <!-- Columna central y derecha: Detalles del producto -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Nombre -->
+          <div>
+            <label
+              for="name"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Nombre del producto*</label
+            >
+            <input
+              id="name"
+              v-model="product.name"
+              type="text"
+              class="w-full border-gray-300 rounded-md shadow-sm"
+              :class="{ 'border-red-300 focus:ring-red-500': errors.name }"
+            />
+            <p v-if="errors.name" class="mt-1 text-sm text-red-600">
+              {{ errors.name }}
+            </p>
+          </div>
 
+          <!-- Descripción -->
+          <div>
+            <label
+              for="description"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Descripción corta*</label
+            >
+            <textarea
+              id="description"
+              v-model="product.description"
+              rows="2"
+              class="w-full border-gray-300 rounded-md shadow-sm"
+              :class="{
+                'border-red-300 focus:ring-red-500': errors.description,
+              }"
+            ></textarea>
+            <p v-if="errors.description" class="mt-1 text-sm text-red-600">
+              {{ errors.description }}
+            </p>
+          </div>
+
+          <!-- Precio y Precio original -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Precio -->
             <div>
               <label
                 for="price"
                 class="block text-sm font-medium text-gray-700 mb-1"
                 >Precio*</label
               >
-              <div class="relative mt-1 rounded-md shadow-sm">
+              <div class="relative rounded-md shadow-sm">
                 <div
                   class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                 >
@@ -117,8 +188,8 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                   id="price"
                   v-model="product.price"
                   type="number"
-                  step="0.01"
                   min="0"
+                  step="0.01"
                   class="pl-7 w-full border-gray-300 rounded-md shadow-sm"
                   :class="{ 'border-red-300 focus:ring-red-500': errors.price }"
                 />
@@ -127,15 +198,13 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                 {{ errors.price }}
               </p>
             </div>
-
-            <!-- Precio original -->
             <div>
               <label
                 for="originalPrice"
                 class="block text-sm font-medium text-gray-700 mb-1"
-                >Precio original</label
+                >Precio original (antes del descuento)</label
               >
-              <div class="relative mt-1 rounded-md shadow-sm">
+              <div class="relative rounded-md shadow-sm">
                 <div
                   class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
                 >
@@ -145,7 +214,6 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                   id="originalPrice"
                   v-model="product.originalPrice"
                   type="number"
-                  step="0.01"
                   min="0"
                   class="pl-7 w-full border-gray-300 rounded-md shadow-sm"
                 />
@@ -154,160 +222,85 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                 Déjalo vacío si no hay descuento
               </p>
             </div>
-
-            <!-- Stock -->
-            <div>
-              <label
-                for="stock"
-                class="block text-sm font-medium text-gray-700 mb-1"
-                >Stock*</label
-              >
-              <input
-                id="stock"
-                v-model="product.stock"
-                type="number"
-                min="0"
-                class="w-full border-gray-300 rounded-md shadow-sm"
-                :class="{ 'border-red-300 focus:ring-red-500': errors.stock }"
-              />
-              <p v-if="errors.stock" class="mt-1 text-sm text-red-600">
-                {{ errors.stock }}
-              </p>
-            </div>
-
-            <!-- Es novedad -->
-            <div class="flex items-center h-full mt-5">
-              <input
-                id="isNewArrival"
-                v-model="product.isNewArrival"
-                type="checkbox"
-                class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
-              <label
-                for="isNewArrival"
-                class="ml-2 block text-sm text-gray-700"
-              >
-                Marcar como novedad
-              </label>
-            </div>
           </div>
-        </div>
 
-        <!-- Categorías -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-bold mb-6">Categorías</h2>
-
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div
-              v-for="category in categories"
-              :key="category.id"
-              class="flex items-start"
+          <!-- Stock -->
+          <div>
+            <label
+              for="stock"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Stock*</label
             >
-              <input
-                :id="`category-${category.id}`"
-                v-model="selectedCategories"
-                :value="category.id"
-                type="checkbox"
-                class="h-4 w-4 mt-1 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
-              <label
-                :for="`category-${category.id}`"
-                class="ml-2 block text-sm text-gray-700"
-              >
-                {{ category.name }}
-              </label>
-            </div>
-          </div>
-          <p v-if="errors.categories" class="mt-2 text-sm text-red-600">
-            {{ errors.categories }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Imágenes y características -->
-      <div class="space-y-8">
-        <!-- Imagen principal -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-bold mb-6">Imagen Principal</h2>
-
-          <div v-if="product.imageUrl" class="mb-4">
-            <img
-              :src="product.imageUrl"
-              alt="Imagen principal"
-              class="w-full h-48 object-cover rounded"
-            />
-            <button
-              @click="product.imageUrl = ''"
-              class="mt-2 text-sm text-red-600 hover:text-red-800"
-            >
-              Eliminar imagen
-            </button>
-          </div>
-
-          <div
-            v-else
-            class="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center"
-          >
-            <UploadCloudIcon class="h-10 w-10 text-gray-400" />
-            <p class="mt-2 text-sm text-gray-500">
-              Arrastra y suelta una imagen o
-            </p>
             <input
-              type="file"
-              accept="image/*"
-              class="hidden"
-              ref="fileInput"
-              @change="handleImageUpload"
+              id="stock"
+              v-model="product.stock"
+              type="number"
+              min="0"
+              class="w-full border-gray-300 rounded-md shadow-sm"
+              :class="{ 'border-red-300 focus:ring-red-500': errors.stock }"
             />
-            <button
-              @click="$refs.fileInput.click()"
-              class="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Selecciona un archivo
-            </button>
-          </div>
-          <p v-if="errors.imageUrl" class="mt-1 text-sm text-red-600">
-            {{ errors.imageUrl }}
-          </p>
-        </div>
-
-        <!-- Características -->
-        <div class="bg-white shadow rounded-lg p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold">Características</h2>
-            <button
-              @click="addFeature"
-              class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-            >
-              + Añadir
-            </button>
+            <p v-if="errors.stock" class="mt-1 text-sm text-red-600">
+              {{ errors.stock }}
+            </p>
           </div>
 
-          <div
-            v-if="product.features && product.features.length > 0"
-            class="space-y-3"
-          >
+          <!-- Descripción completa -->
+          <div>
+            <label
+              for="fullDescription"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Descripción completa</label
+            >
+            <textarea
+              id="fullDescription"
+              v-model="product.fullDescription"
+              rows="4"
+              class="w-full border-gray-300 rounded-md shadow-sm"
+            ></textarea>
+          </div>
+
+          <!-- Características -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Características</label
+            >
             <div
-              v-for="(feature, index) in product.features"
-              :key="index"
-              class="flex items-center"
+              v-if="product.features && product.features.length > 0"
+              class="space-y-2"
             >
-              <input
-                v-model="product.features[index]"
-                type="text"
-                class="flex-grow border-gray-300 rounded-md shadow-sm"
-              />
-              <button
-                @click="removeFeature(index)"
-                class="ml-2 text-red-500 hover:text-red-700"
+              <div
+                v-for="(feature, index) in product.features"
+                :key="index"
+                class="flex items-center"
               >
-                <TrashIcon class="h-5 w-5" />
+                <input
+                  v-model="product.features[index]"
+                  type="text"
+                  class="flex-grow border-gray-300 rounded-md shadow-sm"
+                  placeholder="Característica del producto"
+                />
+                <button
+                  @click="removeFeature(index)"
+                  class="ml-2 p-1 text-gray-500 hover:text-red-500"
+                >
+                  <TrashIcon class="h-5 w-5" />
+                </button>
+              </div>
+              <button
+                @click="addFeature"
+                class="mt-2 text-indigo-600 hover:text-indigo-900 text-sm"
+              >
+                + Añadir otra característica
               </button>
             </div>
+            <button
+              v-else
+              @click="addFeature"
+              class="mt-2 text-indigo-600 hover:text-indigo-900 text-sm"
+            >
+              + Añadir característica
+            </button>
           </div>
-          <p v-else class="text-sm text-gray-500 italic">
-            No hay características
-          </p>
         </div>
       </div>
     </div>
@@ -324,9 +317,10 @@ import {
   Trash as TrashIcon,
 } from "lucide-vue-next";
 
-// Definir middleware para proteger esta ruta
+// Definir middleware y layout para proteger esta ruta
 definePageMeta({
   middleware: ["admin"],
+  layout: "admin",
 });
 
 // Composables
@@ -341,7 +335,6 @@ const loading = ref(true);
 const saving = ref(false);
 const errors = ref<Record<string, string>>({});
 const categories = ref<any[]>([]);
-const selectedCategories = ref<number[]>([]);
 
 // Producto
 const product = ref<any>({
@@ -354,6 +347,7 @@ const product = ref<any>({
   imageUrl: "",
   features: [],
   isNewArrival: false,
+  categoryId: "",
 });
 
 // Modos
@@ -372,18 +366,26 @@ const loadProduct = async () => {
     const response = await api.get(`/products/${route.params.id}`);
 
     if (response.success) {
+      // Asegurar que todas las propiedades del producto se formatean correctamente
       product.value = {
         ...response.data,
         price: response.data.price.toString(),
         originalPrice: response.data.originalPrice
           ? response.data.originalPrice.toString()
           : "",
+        // Asegurar que categoryId sea un número (si existe) para el select
+        categoryId:
+          response.data.categoryId !== null &&
+          response.data.categoryId !== undefined
+            ? Number(response.data.categoryId)
+            : "",
+        // Inicializar features como array vacío si no existe
+        features: response.data.features || [],
+        // Asegurar que isNewArrival sea booleano
+        isNewArrival: Boolean(response.data.isNewArrival),
       };
 
-      // Marcar las categorías seleccionadas
-      selectedCategories.value = response.data.categories
-        ? response.data.categories.map((cat: any) => cat.id)
-        : [];
+      console.log("Producto cargado:", product.value); // Para depuración
     } else {
       showToast("Error al cargar el producto", "error");
       router.push("/admin/products");
@@ -403,6 +405,10 @@ const loadCategories = async () => {
     const response = await api.get("/categories");
     if (response.success) {
       categories.value = response.data;
+      console.log("Categorías cargadas:", categories.value); // Para depuración
+    } else {
+      console.error("Error en respuesta de categorías:", response);
+      showToast("Error al cargar las categorías", "warning");
     }
   } catch (err) {
     console.error("Error cargando categorías:", err);
@@ -423,6 +429,13 @@ const handleImageUpload = (event: Event) => {
   };
 
   reader.readAsDataURL(file);
+};
+
+const removeImage = () => {
+  product.value.imageUrl = "";
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
 };
 
 // Características
@@ -465,12 +478,13 @@ const validateForm = (): boolean => {
     newErrors.stock = "El stock debe ser un número no negativo";
   }
 
-  if (!product.value.imageUrl && isEdit.value) {
+  if (!product.value.imageUrl) {
     newErrors.imageUrl = "La imagen principal es obligatoria";
   }
 
-  if (selectedCategories.value.length === 0) {
-    newErrors.categories = "Selecciona al menos una categoría";
+  // Agregar validación para la categoría
+  if (!product.value.categoryId) {
+    newErrors.categoryId = "Selecciona una categoría";
   }
 
   errors.value = newErrors;
@@ -487,19 +501,52 @@ const saveProduct = async () => {
   saving.value = true;
 
   try {
-    // Preparar datos para enviar
+    // Normalizar categoryId correctamente
+    let categoryIdValue;
+
+    if (
+      product.value.categoryId === "" ||
+      product.value.categoryId === undefined ||
+      product.value.categoryId === null
+    ) {
+      categoryIdValue = null;
+    } else {
+      // Intentar convertir a número
+      const numId = Number(product.value.categoryId);
+
+      // Verificar que sea un número válido
+      if (isNaN(numId)) {
+        showToast("El ID de categoría debe ser un número válido", "error");
+        saving.value = false;
+        return;
+      }
+
+      categoryIdValue = numId;
+    }
+
+    console.log(
+      "categoryId antes de guardar:",
+      categoryIdValue,
+      typeof categoryIdValue
+    );
+
+    // Crear objeto de producto alineado con el schema actual
     const productData = {
-      ...product.value,
+      name: product.value.name,
+      description: product.value.description,
       price: Number(product.value.price),
-      originalPrice: product.value.originalPrice
-        ? Number(product.value.originalPrice)
-        : undefined,
       stock: Number(product.value.stock),
-      categoryIds: selectedCategories.value,
+      imageUrl: product.value.imageUrl,
+      categoryId: categoryIdValue,
+      // Ya NO incluimos: features, isNewArrival, fullDescription
     };
 
-    let response;
+    console.log(
+      "Objeto completo a enviar:",
+      JSON.stringify(productData, null, 2)
+    );
 
+    let response;
     if (isEdit.value) {
       response = await api.put(
         `/admin/products/${route.params.id}`,
@@ -511,18 +558,20 @@ const saveProduct = async () => {
 
     if (response.success) {
       showToast(
-        isEdit.value
-          ? "Producto actualizado correctamente"
-          : "Producto creado correctamente",
+        isEdit.value ? "Producto actualizado" : "Producto creado",
         "success"
       );
       router.push("/admin/products");
     } else {
       showToast(response.message || "Error al guardar el producto", "error");
     }
-  } catch (err) {
-    console.error("Error guardando producto:", err);
-    showToast("Error al conectar con el servidor", "error");
+  } catch (error) {
+    console.error("Error al guardar producto:", error);
+    showToast(
+      "Error: " +
+        (error instanceof Error ? error.message : "Error desconocido"),
+      "error"
+    );
   } finally {
     saving.value = false;
   }

@@ -24,8 +24,9 @@ app.use(helmet());
 // Configuración CORS
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -39,6 +40,16 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Aplicar rate limiting
 app.use("/api", apiLimiter);
+
+// Añade estos logs antes de las rutas no encontradas
+app.use(
+  "/api",
+  (req, res, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next();
+  },
+  routes
+);
 
 // Rutas de la API
 app.use("/api", routes);
@@ -97,6 +108,7 @@ app.get("/", (req, res) => {
 
 // Manejo de rutas no encontradas (debe ir antes del manejador de errores)
 app.use((req, res) => {
+  console.log(`Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
     message: "Ruta no encontrada",

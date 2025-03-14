@@ -9,20 +9,81 @@ export class UserService {
     return prismaClient.user.findUnique({ where: { email } });
   }
 
-  async create(userData: { email: string; password: string; name?: string }) {
+  // Actualizar para aceptar el parámetro role
+  async create(userData: {
+    email: string;
+    password: string;
+    name?: string;
+    role?: string;
+  }) {
     const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
 
     return prismaClient.user.create({
       data: {
         email: userData.email,
         password: hashedPassword,
-        name: userData.name,
+        name: userData.name || null,
+        role: userData.role || "cliente", // Valor predeterminado
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getAll() {
+    return prismaClient.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getById(id: number) {
+    return prismaClient.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async update(
+    id: number,
+    data: { name?: string; email?: string; password?: string; role?: string }
+  ) {
+    const updateData: any = { ...data };
+
+    if (data.password) {
+      updateData.password = await bcrypt.hash(data.password, SALT_ROUNDS);
+    } else {
+      delete updateData.password;
+    }
+
+    return prismaClient.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
       },
     });
   }

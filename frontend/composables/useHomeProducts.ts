@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { useApi } from "~/composables/useApi";
+import { useApi } from "./useApi";
 
 export function useHomeProducts() {
   const api = useApi();
@@ -16,29 +16,43 @@ export function useHomeProducts() {
 
   // Procesar productos para agregar ratings y porcentajes de descuento
   const processProducts = (products) => {
-    return products.map((product) => ({
-      ...product,
-      rating: product.rating || 4.5,
-      discountPercentage: product.originalPrice
-        ? Math.round(
-            ((product.originalPrice - product.price) / product.originalPrice) *
-              100
-          )
-        : null,
-    }));
+    return products.map((product) => {
+      // Asegurarnos de que price sea un número para cálculos pero se mantenga como string para compatibilidad
+      const price =
+        typeof product.price === "string"
+          ? product.price
+          : String(product.price);
+      const originalPrice = product.originalPrice
+        ? typeof product.originalPrice === "string"
+          ? product.originalPrice
+          : String(product.originalPrice)
+        : null;
+
+      return {
+        ...product,
+        price,
+        originalPrice,
+        rating: product.rating || 4.5,
+        // No calculamos discount percentage aquí, lo dejamos para el componente
+      };
+    });
   };
 
   // Cargar nuevos productos
   const loadNewArrivals = async (limit = 4) => {
     loadingNew.value = true;
+    errorNew.value = null;
+
     try {
       const response = await api.get(
         `/products?category=new-arrivals&limit=${limit}`
       );
       if (response.success) {
-        newArrivals.value = processProducts(response.data);
+        newArrivals.value = processProducts(
+          response.data.products || response.data
+        );
       } else {
-        errorNew.value = response.message;
+        errorNew.value = response.message || "Error al cargar productos";
       }
     } catch (err) {
       console.error("Error cargando nuevos productos:", err);
@@ -51,14 +65,18 @@ export function useHomeProducts() {
   // Cargar productos más vendidos
   const loadTopSelling = async (limit = 4) => {
     loadingTop.value = true;
+    errorTop.value = null;
+
     try {
       const response = await api.get(
         `/products?category=top-selling&limit=${limit}`
       );
       if (response.success) {
-        topSelling.value = processProducts(response.data);
+        topSelling.value = processProducts(
+          response.data.products || response.data
+        );
       } else {
-        errorTop.value = response.message;
+        errorTop.value = response.message || "Error al cargar productos";
       }
     } catch (err) {
       console.error("Error cargando productos más vendidos:", err);

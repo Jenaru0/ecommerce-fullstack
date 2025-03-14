@@ -1,21 +1,21 @@
-// filepath:
-c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\products\index.vue
 <template>
   <div class="container mx-auto px-6 md:px-16 lg:px-24 py-12">
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-2xl font-bold">Gestión de Productos</h1>
+      <h1 class="text-2xl font-bold">Gestión de productos</h1>
       <NuxtLink
         to="/admin/products/new"
-        class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 inline-flex items-center"
+        class="bg-black text-white px-4 py-2 rounded flex items-center hover:bg-gray-800"
       >
-        <PlusIcon class="h-5 w-5 mr-2" />
-        Nuevo Producto
+        <PlusIcon class="h-5 w-5 mr-1" />
+        Nuevo producto
       </NuxtLink>
     </div>
 
-    <!-- Filtros de búsqueda -->
-    <div class="bg-white shadow rounded-lg p-4 mb-6">
-      <div class="flex flex-col md:flex-row gap-4">
+    <!-- Filtros -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-8">
+      <div
+        class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4"
+      >
         <div class="flex-1">
           <label
             for="search"
@@ -23,16 +23,16 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
             >Buscar</label
           >
           <div class="relative">
-            <SearchIcon
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
-            />
             <input
               id="search"
               v-model="searchQuery"
               type="text"
-              placeholder="Buscar productos..."
-              class="pl-10 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Buscar por nombre o descripción"
               @input="debouncedSearch"
+            />
+            <SearchIcon
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
             />
           </div>
         </div>
@@ -48,7 +48,7 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
             class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
             @change="loadProducts"
           >
-            <option value="">Todas</option>
+            <option value="">Todas las categorías</option>
             <option
               v-for="category in categories"
               :key="category.id"
@@ -124,11 +124,7 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
             >
               Stock
             </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Estado
-            </th>
+            <!-- Eliminada la columna de Estado -->
             <th
               class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
@@ -137,7 +133,11 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="product in products" :key="product.id">
+          <tr
+            v-for="product in products"
+            :key="product.id"
+            class="hover:bg-gray-50"
+          >
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div class="h-10 w-10 flex-shrink-0">
@@ -161,19 +161,10 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-900">
-                {{
-                  product.categories?.length
-                    ? product.categories[0].name
-                    : "Sin categoría"
-                }}
-              </div>
-              <div
-                v-if="product.categories?.length > 1"
-                class="text-xs text-gray-500"
-              >
-                +{{ product.categories.length - 1 }} más
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <div>
+                <!-- Corrección: mostrar correctamente el nombre de la categoría -->
+                {{ product.category?.name || "Sin categoría" }}
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -185,32 +176,10 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
                 ${{ formatPrice(product.originalPrice) }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                :class="[
-                  'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                  product.stock > 10
-                    ? 'bg-green-100 text-green-800'
-                    : product.stock > 0
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800',
-                ]"
-              >
-                {{ product.stock > 0 ? product.stock : "Agotado" }}
-              </span>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ product.stock > 0 ? product.stock : "Agotado" }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                :class="[
-                  'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                  product.isNewArrival
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800',
-                ]"
-              >
-                {{ product.isNewArrival ? "Novedad" : "Regular" }}
-              </span>
-            </td>
+            <!-- Eliminada la celda de Estado -->
             <td
               class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
             >
@@ -233,7 +202,7 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
             </td>
           </tr>
           <tr v-if="products.length === 0">
-            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
               No se encontraron productos que coincidan con los criterios de
               búsqueda
             </td>
@@ -325,6 +294,7 @@ c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\pages\admin\prod
 import { ref, computed, onMounted, watch } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useToast } from "~/composables/useToast";
+import { useDebounce } from "~/composables/useDebounce";
 import {
   Search as SearchIcon,
   Edit as EditIcon,
@@ -335,24 +305,45 @@ import {
   Plus as PlusIcon,
   AlertTriangle as AlertTriangleIcon,
 } from "lucide-vue-next";
-import debounce from "lodash.debounce";
 
-// Definir middleware para proteger esta ruta
+// Definir interfaces para el tipado
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number | null;
+  stock: number;
+  imageUrl?: string;
+  category?: Category | null;
+  isNewArrival?: boolean;
+  // Otras propiedades que puedan existir
+}
+
+const { debounce } = useDebounce();
+
+// Definir middleware y layout para proteger esta ruta
 definePageMeta({
   middleware: ["admin"],
+  layout: "admin",
 });
 
 // Composables
 const api = useApi();
 const { showToast } = useToast();
 
-// Estado
+// Estado con tipos adecuados
 const loading = ref(true);
 const error = ref<string | null>(null);
-const products = ref<any[]>([]);
-const categories = ref<any[]>([]);
+const products = ref<Product[]>([]);
+const categories = ref<Category[]>([]);
 const showDeleteModal = ref(false);
-const productToDelete = ref<any | null>(null);
+const productToDelete = ref<Product | null>(null);
 const isDeleting = ref(false);
 
 // Filtros y paginación
@@ -363,47 +354,48 @@ const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const totalProducts = ref(0);
 
-// Propiedades calculadas
+// Cálculos derivados
 const totalPages = computed(() => {
   return Math.ceil(totalProducts.value / itemsPerPage.value);
 });
 
 const paginationRange = computed(() => {
-  // Mostrar máximo 5 páginas en la paginación
+  const range = [];
   const maxPagesToShow = 5;
-  const pages = [];
 
-  if (totalPages.value <= maxPagesToShow) {
-    // Si hay pocas páginas, mostrarlas todas
-    for (let i = 1; i <= totalPages.value; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Si hay muchas páginas, mostrar algunas alrededor de la página actual
-    let startPage = Math.max(
-      1,
-      currentPage.value - Math.floor(maxPagesToShow / 2)
-    );
-    let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1);
+  let startPage = Math.max(
+    1,
+    currentPage.value - Math.floor(maxPagesToShow / 2)
+  );
+  let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1);
 
-    // Ajustar si llegamos a los límites
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
+  // Ajustar si estamos cerca del final
+  if (endPage - startPage + 1 < maxPagesToShow && startPage > 1) {
+    startPage = Math.max(1, endPage - maxPagesToShow + 1);
   }
 
-  return pages;
+  // Generar el rango de páginas
+  for (let i = startPage; i <= endPage; i++) {
+    range.push(i);
+  }
+
+  return range;
 });
 
-// Métodos
+// Métodos con tipos adecuados
 const debouncedSearch = debounce(() => {
   currentPage.value = 1;
   loadProducts();
 }, 300);
+
+// Corregir la función formatProducts con tipado adecuado
+const formatProducts = (products: any[]): Product[] => {
+  return products.map((product) => ({
+    ...product,
+    // Asegurar que se maneje como objeto no como array
+    category: product.category || null,
+  }));
+};
 
 const loadProducts = async () => {
   loading.value = true;
@@ -430,7 +422,7 @@ const loadProducts = async () => {
     const response = await api.get(`/admin/products?${queryParams.toString()}`);
 
     if (response.success) {
-      products.value = response.data.products;
+      products.value = formatProducts(response.data.products);
       totalProducts.value = response.data.total;
     } else {
       error.value = response.message || "Error al cargar los productos";
@@ -473,7 +465,7 @@ const goToPage = (page: number) => {
   loadProducts();
 };
 
-const confirmDelete = (product: any) => {
+const confirmDelete = (product: Product) => {
   productToDelete.value = product;
   showDeleteModal.value = true;
 };

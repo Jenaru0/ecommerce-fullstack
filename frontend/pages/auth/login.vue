@@ -64,18 +64,24 @@ import { useAuth } from "~/composables/useAuth";
 
 const router = useRouter();
 const route = useRoute();
-const { login, loading, error } = useAuth();
+const { login, loading, error, isAdmin } = useAuth();
 
 const email = ref("");
 const password = ref("");
 
-// Intentar redireccionar al usuario a la página que intentaba visitar
+// Obtener la ruta de redirección de los query params
 const redirectPath = route.query.redirect || "/";
 
 const handleLogin = async () => {
   const success = await login(email.value, password.value);
   if (success) {
-    router.push(redirectPath);
+    // Si el usuario es admin, redirigirlo al panel administrativo
+    // a menos que esté intentando acceder a una ruta específica del admin
+    if (isAdmin.value && !redirectPath.startsWith("/admin")) {
+      router.push("/admin");
+    } else {
+      router.push(redirectPath);
+    }
   }
 };
 </script>

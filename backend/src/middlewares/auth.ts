@@ -10,6 +10,7 @@ declare global {
         id: number;
         email: string;
         role: string;
+        name?: string;
       };
     }
     interface User {
@@ -17,6 +18,20 @@ declare global {
       email: string;
       role: string;
       // Si name debe estar disponible, asegúrate de añadirlo aquí
+    }
+  }
+}
+
+// Asegúrese de que el tipo Request tenga la propiedad name
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number;
+        email: string;
+        role: string;
+        name?: string;
+      };
     }
   }
 }

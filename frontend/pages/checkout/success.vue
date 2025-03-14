@@ -48,7 +48,9 @@
               <div class="flex justify-between mb-2">
                 <span class="text-gray-600">Método de pago:</span>
                 <span>{{
-                  order.paymentMethod === "card" ? "Tarjeta" : "PayPal"
+                  order.paymentMethod === "card"
+                    ? "Tarjeta de crédito"
+                    : "Tarjeta de crédito"
                 }}</span>
               </div>
             </div>

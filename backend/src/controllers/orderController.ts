@@ -22,12 +22,30 @@ const createOrderSchema = z.object({
       phone: z.string().optional(),
     })
     .optional(),
+  paymentMethod: z.enum(["card", "paypal"], {
+    errorMap: () => ({ message: "Método de pago inválido" }),
+  }),
+  shipping: z.number().nonnegative(),
+  total: z.number().positive(),
 });
 
 export const getOrders = async (req: Request, res: Response): Promise<void> => {
   try {
-    const orders = await orderService.getOrders();
-    res.json({ success: true, data: orders });
+    // Extraer parámetros de consulta
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+
+    // Pasar objeto de consulta correctamente
+    const ordersData = await orderService.getOrders({
+      page,
+      limit,
+      search,
+      status,
+    });
+
+    res.json({ success: true, data: ordersData });
   } catch (error) {
     console.error("Error al obtener órdenes:", error);
     res.status(500).json({
@@ -43,7 +61,8 @@ export const getMyOrders = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const orders = await orderService.getOrdersByUser(userId);
+    // Usar el nombre correcto del método
+    const orders = await orderService.getUserOrders(userId);
     res.json({ success: true, data: orders });
   } catch (error) {
     console.error("Error al obtener mis órdenes:", error);
@@ -99,9 +118,11 @@ export const createOrder = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const { items, shippingDetails } = createOrderSchema.parse(req.body);
+    const { items, shippingDetails, paymentMethod, shipping, total } =
+      createOrderSchema.parse(req.body);
 
     try {
+      // Usar el método correcto: createOrder en lugar de create
       const order = await orderService.createOrder(userId, items);
 
       // Actualizar con datos de envío si se proporcionaron

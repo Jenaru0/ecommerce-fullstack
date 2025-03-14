@@ -11,6 +11,11 @@ const productSchema = z.object({
   price: z.number().positive("El precio debe ser positivo"),
   imageUrl: z.string().url("Debe ser una URL válida").optional(),
   stock: z.number().int().nonnegative("El stock no puede ser negativo"),
+  categoryId: z.number().nullable().optional(), // Añadir soporte para categoryId
+  // Si tienes campos adicionales como features, isNewArrival, etc., inclúyelos aquí
+  features: z.array(z.string()).optional(),
+  isNewArrival: z.boolean().optional(),
+  fullDescription: z.string().optional(),
 });
 
 type ProductInput = z.infer<typeof productSchema>;
@@ -18,7 +23,17 @@ type ProductInput = z.infer<typeof productSchema>;
 export class ProductController {
   async getProducts(req: Request, res: Response): Promise<void> {
     try {
-      const { category, limit = 10, page = 1 } = req.query;
+      // Extrae todos los parámetros de consulta que podrían ser útiles
+      const {
+        category,
+        search,
+        categoryId,
+        minPrice,
+        maxPrice,
+        sort,
+        limit = 10,
+        page = 1,
+      } = req.query;
 
       let products;
 
@@ -34,10 +49,18 @@ export class ProductController {
           Number(page)
         );
       } else {
-        products = await productService.getAll(Number(limit), Number(page));
+        // Corregir llamada a getAll pasando un objeto con las propiedades esperadas
+        products = await productService.getAll({
+          search: search as string,
+          categoryId: categoryId ? Number(categoryId) : undefined,
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+          sort: sort as string,
+          page: Number(page),
+          limit: Number(limit),
+        });
       }
 
-      // Cambia el "return" para evitar el error de tipado
       res.json({
         success: true,
         data: products,
@@ -119,9 +142,8 @@ export class ProductController {
   async updateProduct(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const productId = id;
 
-      if (!productId) {
+      if (!id) {
         res.status(400).json({
           success: false,
           message: "ID de producto inválido",
@@ -129,32 +151,60 @@ export class ProductController {
         return;
       }
 
-      // Validar datos de actualización
-      const validatedData: ProductInput = productSchema.parse(req.body);
+      console.log("Datos recibidos para actualización:", req.body);
 
-      // Verificar que el producto existe
-      const existingProduct = await productService.getById(productId);
-
-      if (!existingProduct) {
-        res.status(404).json({
-          success: false,
-          message: "Producto no encontrado",
+      try {
+        // Validar datos con Zod
+        const productSchema = z.object({
+          name: z.string().min(3).optional(),
+          description: z.string().optional(),
+          price: z.number().positive().optional(),
+          imageUrl: z.string().url().optional(),
+          stock: z.number().int().nonnegative().optional(),
+          categoryId: z.number().int().positive().nullable().optional(),
         });
-        return;
+
+        const validatedData = productSchema.parse(req.body);
+
+        // Actualizar producto con timeout para evitar bloqueos
+        const updatedProduct = await Promise.race([
+          productService.update(id, validatedData),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Tiempo de espera agotado")),
+              15000
+            )
+          ),
+        ]);
+
+        res.json({
+          success: true,
+          message: "Producto actualizado con éxito",
+          data: updatedProduct,
+        });
+      } catch (error: unknown) {
+        console.error("Error específico al actualizar:", error);
+
+        // Definir un mensaje de error predeterminado
+        let errorMessage = "Error al actualizar el producto";
+
+        // Verificar tipo de error para mensajes específicos
+        if (error instanceof Error) {
+          errorMessage =
+            error.message.includes("categoría") ||
+            error.message.includes("tiempo") ||
+            error.message.includes("no existe")
+              ? error.message
+              : "Error al actualizar el producto";
+        }
+
+        res.status(500).json({
+          success: false,
+          message: errorMessage,
+        });
       }
-
-      // Actualizar el producto
-      const updatedProduct = await productService.update(
-        productId,
-        validatedData
-      );
-
-      res.json({
-        success: true,
-        message: "Producto actualizado con éxito",
-        data: updatedProduct,
-      });
-    } catch (error) {
+    } catch (error: unknown) {
+      // Manejar errores de validación
       if (error instanceof z.ZodError) {
         res.status(400).json({
           success: false,
@@ -164,10 +214,10 @@ export class ProductController {
         return;
       }
 
-      console.error("Error al actualizar producto:", error);
+      console.error("Error general al actualizar producto:", error);
       res.status(500).json({
         success: false,
-        message: "Error al actualizar el producto",
+        message: "Error interno del servidor",
       });
     }
   }

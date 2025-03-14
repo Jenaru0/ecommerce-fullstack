@@ -4,17 +4,23 @@ import authRoutes from "./auth";
 import productRoutes from "./product";
 import orderRoutes from "./order";
 import userRoutes from "./user";
-import docsRoutes from "./docs"; // Importar las rutas de documentación
+import categoryRoutes from "./category";
+import adminRoutes from "./admin";
+import docsRoutes from "./docs";
 
 const router = Router();
 
 // Documentación API
 router.use("/docs", docsRoutes);
 
-// Agrupación de rutas por funcionalidad
-router.use("/auth", authRoutes); // Rutas de autenticación (login/registro)
-router.use("/products", productRoutes); // Rutas de productos
-router.use("/orders", orderRoutes); // Rutas de órdenes/pedidos
-router.use("/users", userRoutes); // Rutas de usuarios
+// Rutas admin (deben ir antes para tomar precedencia)
+router.use("/admin", adminRoutes);
+
+// Rutas públicas agrupadas por funcionalidad
+router.use("/auth", authRoutes);
+router.use("/products", productRoutes);
+router.use("/orders", orderRoutes);
+router.use("/users", userRoutes);
+router.use("/categories", categoryRoutes);
 
 export default router;

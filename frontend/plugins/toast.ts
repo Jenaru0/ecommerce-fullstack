@@ -1,6 +1,6 @@
 // filepath: c:\Users\jonna\OneDrive\Escritorio\ecommerce-fullstack\frontend\plugins\toast.ts
 import { createApp, h, ref, onMounted } from "vue";
-import Toast from "~/components/UI/Toast.vue";
+import Toast from "~/components/ui/Toast.vue"; // Corregido: ui en lugar de UI
 import { useToast } from "~/composables/useToast";
 
 export default defineNuxtPlugin(() => {
